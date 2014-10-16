@@ -40,7 +40,15 @@ void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event, void
 
 ppr::SurfaceRefinement * refinement;
 
+//Gets initial guess using ransac to find the largest plane
+//Refines the result using Probabilistic Plane Refinement
+//Visualize
 ppr::Surface * segment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud){
+//==========================================================================================================================================
+//==========================================================================================================================================
+//==========================================================GET RANSAC INITIAL GUESS========================================================
+//==========================================================================================================================================
+//==========================================================================================================================================
 	int width = cloud->width;
 	int height = cloud->height;
 	pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
@@ -60,13 +68,13 @@ ppr::Surface * segment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud){
 	// Mandatory
 	seg.setModelType (pcl::SACMODEL_PLANE);
 	seg.setMethodType (pcl::SAC_RANSAC);
-	seg.setDistanceThreshold (0.005);
+	seg.setDistanceThreshold (0.02);
 	seg.setMaxIterations (1000);
 
 	seg.setInputCloud (cloud_normals);
 	seg.segment (*ransac_inliers, *coefficients);
 
-	std::cerr << "Model inliers: " << ransac_inliers->indices.size () << std::endl;
+	//std::cerr << "Model inliers: " << ransac_inliers->indices.size () << std::endl;
 
 	ppr::Plane * p = new ppr::Plane();
 	p->normal_x = coefficients->values[0];
@@ -92,14 +100,14 @@ ppr::Surface * segment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud){
 			PointXYZRGBNormal & point = cloud_normals->points.at(h*cloud->width+w);
 			if(!isnan(point.z)){
 				float d =  fabs(p->distance(point.x,point.y,point.z));
-				inliers[w][h] = d < 0.005;
+				inliers[w][h] = d < 0.02;
 			}else{
 				inliers[w][h] = false;
 			}
 		}
 	}
 
-
+/*
 	IplImage * inliers_img = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
 	for(int w = 0; w < width; w++){
 		for(int h = 0; h < height; h++){
@@ -111,13 +119,25 @@ ppr::Surface * segment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud){
 		}
 	}
 
-	cvShowImage("inliers_img", inliers_img);
+	cvShowImage("inliers_img before refinement", inliers_img);
 	cvWaitKey(0);
 	cvReleaseImage( &inliers_img );
+*/
 
+//==========================================================================================================================================
+//==========================================================================================================================================
+//==========================================================REFINES THE INITIAL GUESS=======================================================
+//==========================================================================================================================================
+//==========================================================================================================================================
+
+	refinement->improve(inliers,cloud_normals,p); //<-------------------- refine the plane
 	
-	refinement->improve(inliers,cloud_normals,p);
-	
+//==========================================================================================================================================
+//==========================================================================================================================================
+//==========================================================VISUALIZATION OF RESULT=========================================================
+//==========================================================================================================================================
+//==========================================================================================================================================
+	printf("START VIEWER STUFF\n");
 	for(int w = 0; w < width; w++){
 		for(int h = 0; h < height; h++){
 			if(inliers[w][h]){
@@ -128,7 +148,7 @@ ppr::Surface * segment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud){
 			}
 		}
 	}
-	printf("START VIEWER STUFF\n");
+
 	char buf[1024];
 	sprintf(buf,"cloud");
 	if(counter > 0){myviewer->removePointCloud(buf);}
@@ -148,17 +168,20 @@ ppr::Surface * segment(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud){
 int main(int argc, char **argv){
 	printf("starting pcd_tester software\n");
 	
+	//Set up refinement algorithm, debugg etc turned off
 	refinement = new ppr::SurfaceRefinement();
 	refinement->use_colors = true;
 	refinement->setDebugg(false);
 	refinement->setVisualize(false);
 	refinement->setMaxDistance(0.04f);
-	
+
+	//Start a pcl visualizer	
  	myviewer = boost::shared_ptr<pcl::visualization::PCLVisualizer>(new pcl::visualization::PCLVisualizer ("Map viewer"));
 	myviewer->setBackgroundColor (0,1,0);
 	myviewer->initCameraParameters ();
 	myviewer->registerKeyboardCallback (keyboardEventOccurred, (void*)&myviewer);
 
+	//Segment the pointclouds provided as input
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 	for(int i = 1; i < argc; i+=1){
 		printf("path: %s\n",argv[i]);

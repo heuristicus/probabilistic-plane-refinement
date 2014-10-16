@@ -19,7 +19,7 @@ AdaptiveSingleGaussiansSegmentModelFactory::AdaptiveSingleGaussiansSegmentModelF
 	
 	for(int i = 0; i < bins; i++)			{x_arr[i] = 2.0f*max_d*(float(i)+0.5f-0.5*float(bins))/float(bins-1);}
 	for(int i = 0; i < smoothing*2+1; i++)	{smoothing_kernel[i] = exp(-0.5*x_arr[i-smoothing+bins/2]*x_arr[i-smoothing+bins/2]/(smoothng_std*smoothng_std));}
-	for(int i = 0; i < smoothing*2+1; i++)	{printf("%f\n",smoothing_kernel[i]);}
+	//for(int i = 0; i < smoothing*2+1; i++)	{printf("%f\n",smoothing_kernel[i]);}
 }
 
 AdaptiveSingleGaussiansSegmentModelFactory::AdaptiveSingleGaussiansSegmentModelFactory(){
@@ -34,7 +34,7 @@ AdaptiveSingleGaussiansSegmentModelFactory::AdaptiveSingleGaussiansSegmentModelF
 
 	for(int i = 0; i < bins; i++)			{x_arr[i] = 2.0f*max_d*(float(i)+0.5f-0.5*float(bins))/float(bins-1);}
 	for(int i = 0; i < smoothing*2+1; i++)	{smoothing_kernel[i] = exp(-0.5*x_arr[i-smoothing+bins/2]*x_arr[i-smoothing+bins/2]/(smoothng_std*smoothng_std));}
-	for(int i = 0; i < smoothing*2+1; i++)	{printf("%f\n",smoothing_kernel[i]);}
+	//for(int i = 0; i < smoothing*2+1; i++)	{printf("%f\n",smoothing_kernel[i]);}
 }
 
 AdaptiveSingleGaussiansSegmentModelFactory::~AdaptiveSingleGaussiansSegmentModelFactory(){}

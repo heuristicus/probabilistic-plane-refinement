@@ -1,19 +1,8 @@
 #include "SurfaceRefinement.h"
 #include "../util/util.h"
 namespace ppr {
-const int undef = 99999;
 
 using namespace std;
-
-double getFloatTime(){
-	struct timeval start;
-	gettimeofday(&start, NULL);
-	double sec = start.tv_sec;
-	double usec = start.tv_usec;
-	double t = sec+usec*0.000001;//(sec*1000000.0+usec)/1000000.0f;
-	//printf("%f\n",t);
-	return t;
-}
 
 int showtype = 0;
 int showNr = 0;
@@ -150,7 +139,7 @@ int improve_count = 0;
 
 
 PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, PointCloud<PointXYZRGBNormal>::Ptr cloud, Surface * surface){
-	double currentTime = getFloatTime();
+	double currentTime = getCurrentTime();
 	double start = currentTime;
 	modelFactory->setFrameNr(modelFactory->frame_nr+1);
 	//Set data structures
@@ -223,22 +212,22 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 	if(debugg){
 		printf("max_distance: %f\n",max_distance);
 		printf("-----------------------------------------------------\n");
-		printf("Init data time       = %f\n",getFloatTime()-currentTime);
-		currentTime = getFloatTime();
+		printf("Init data time       = %f\n",getCurrentTime()-currentTime);
+		currentTime = getCurrentTime();
 	}
 	//Init
 	//modelFactory->setSurface(surface);
 	inference->init(width,height,x,y,z,r,g,b,nx,ny,nz);
 	if(debugg){
-		printf("M+I init time        = %f\n",getFloatTime()-currentTime);;
-		currentTime = getFloatTime();
+		printf("M+I init time        = %f\n",getCurrentTime()-currentTime);;
+		currentTime = getCurrentTime();
 	}
 	//Main loop
 	double total_distance_time	= 0;
 	double total_train_time		= 0;
 	double total_inference_time = 0;
 	double total_update_time	= 0;
-	double start_loop = getFloatTime();
+	double start_loop = getCurrentTime();
 	
 	showNr = 0;
 	inlier_clouds.clear();
@@ -260,7 +249,7 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 		
 
 		//Extract distances for all points to the plane.
-		double start_distance_time = getFloatTime();
+		double start_distance_time = getCurrentTime();
 		for(int w = 0; w < width; w++){
 			for(int h = 0; h < height; h++){
 				probability[w][h] = 0;
@@ -277,10 +266,10 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 		}
 //printf("v_d.size() = %i\n",v_d.size());
 		
-		total_distance_time += getFloatTime()-start_distance_time;
+		total_distance_time += getCurrentTime()-start_distance_time;
 		
 		//Train models and calculate probability for possible inliers
-		double start_train_time = getFloatTime();
+		double start_train_time = getCurrentTime();
 		vector<SegmentModel*> * models = modelFactory->getModels(v_w, v_h, v_d, x, y, z, r, g, b,nx,ny,nz, 0); //Learn models
 		if(models->size() == 0){
 			
@@ -329,20 +318,20 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 			probability[w][h] = model->getModelFit(v_d.at(j),x[w][h], y[w][h], z[w][h],r[w][h], g[w][h], b[w][h],nx[w][h], ny[w][h], nz[w][h]);
 			protest.push_back(probability[w][h]);
 		}
-		total_train_time += getFloatTime()-start_train_time;
+		total_train_time += getCurrentTime()-start_train_time;
 		
 		//Infer inliers from probability function of inliers and inference algorithm
-		double start_inference_time = getFloatTime();
+		double start_inference_time = getCurrentTime();
 		int expectedInliers = modelFactory->getExpectedInliers();// from integral over foreground distribution
 		sort(protest.begin(),protest.end());
 		float inlier_threshold =  protest.at(max(int(protest.size()-expectedInliers-1),0));//Find the threshold for the number of expected inliers
 
 		inference->threshold = inlier_threshold;
 		inference->infer(probability,mask);
-		total_inference_time += getFloatTime()-start_inference_time;
+		total_inference_time += getCurrentTime()-start_inference_time;
 
 		//re estimate parameters for surface using inliers
-		double start_update_time = getFloatTime();
+		double start_update_time = getCurrentTime();
 		vector<float> px;
 		vector<float> py;
 		vector<float> pz;
@@ -364,18 +353,6 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 				pz.push_back(z[w][h]);
 				pweight.push_back(1.0f);
 			}
-/*
-			if(mask[w][h]){
-				px.push_back(x[w][h]);
-				py.push_back(y[w][h]);
-				pz.push_back(z[w][h]);
-				if(weighted_estimation){
-					pweight.push_back(probability[w][h]);//1.0f);
-				}else{
-					pweight.push_back(1.0f);
-				}
-			}
-*/
 		}
 		
 		
@@ -386,12 +363,6 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 				}
 			}
 		}
-		
-		//Debugg plots
-		//if(debugg){// && it == iterations-1){//
-		//if(debugg){
-		//printf("improve_count: %i iteration: %i allow all:%i\n",improve_count,it,it > iterations/2);
-		//if(improve_count/iterations > 130 && it == iterations-1){//debugg && it == iterations-1){
 		
 	if(false && debugg && it == iterations-1){
 		model->print();
@@ -416,12 +387,6 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 				vector<float> vec = model->getAllFits(d,x[w][h], y[w][h], z[w][h],r[w][h], g[w][h], b[w][h],nx[w][h], ny[w][h], nz[w][h]);
 				geoprob[w][h] = vec.at(0);
 				colprob[w][h] = vec.at(1);
-/*
-				if(fabs(d) < md){
-					colprob[w][h] = col->getModelFit(d,x[w][h], y[w][h], z[w][h],r[w][h], g[w][h], b[w][h],nx[w][h], ny[w][h], nz[w][h]);
-					//geoprob[w][h] = geo->getModelFit(d,x[w][h], y[w][h], z[w][h],r[w][h], g[w][h], b[w][h],nx[w][h], ny[w][h], nz[w][h]);
-				}
-*/
 				jointprob[w][h] = geoprob[w][h]*colprob[w][h];
 			}
 		}
@@ -606,7 +571,7 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 */
 		}
 		surface->update(px,py,pz,pweight);
-		total_update_time += getFloatTime()-start_update_time;
+		total_update_time += getCurrentTime()-start_update_time;
 		improve_count++;
 	/*
 		if(false && (modelFactory->frame_nr > 49)){
@@ -656,7 +621,7 @@ PointCloud<PointXYZRGBNormal>::Ptr SurfaceRefinement::improve(bool ** inliers, P
 		printf("---END LOOP---\n");
 	}
 	
-	if(debugg){printf("improve cost: %f\n",getFloatTime()-start);}
+	if(debugg){printf("improve cost: %f\n",getCurrentTime()-start);}
 
 	//Clear mem
 	
