@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>Probabilistic-Plane-Refinement</name>
+  <name>probabilistic_plane_refinement</name>
   <version>1.0.0</version>
   <description>The Probabilistic Plane Refinement package</description>
 
