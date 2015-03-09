@@ -3,13 +3,14 @@ project(probabilistic_plane_refinement)
 
 set(CMAKE_CXX_FLAGS "-O4 -g -pg -Wunknown-pragmas -Wno-unknown-pragmas -Wsign-compare -fPIC -fopenmp")
 
+find_package(catkin REQUIRED COMPONENTS roscpp pcl_ros)
 # PCL
 find_package(PCL 1.7 REQUIRED)
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES 
-  CATKIN_DEPENDS pcl_ros
+  CATKIN_DEPENDS roscpp pcl_ros
 #  DEPENDS system_lib
 )
 
